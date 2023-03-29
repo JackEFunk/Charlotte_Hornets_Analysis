@@ -1,0 +1,174 @@
+---
+title: "Charlotte Hornets Data Analysis"
+author: "Jack Funk"
+output: html_notebook
+---
+
+#### Step 0: Install and load packages
+I am using the tidyverse, lubridate, ggplot2, and dplyr packages.
+
+```{r message = FALSE}
+install.packages("tidyverse",dependencies = TRUE)
+install.packages("lubridate",dependencies = TRUE)
+install.packages("ggplot2",dependencies = TRUE)
+install.packages("dplyr", dependencies = TRUE)
+```
+
+```{r message = FALSE}
+library(tidyverse)
+library(lubridate)
+```
+
+
+#### Step 1: Collect Data
+I used a dataset from Kaggle containing data from NBA games. I downloaded the .csv and read it to the game dataframe
+
+```{r message = FALSE}
+game <- read_csv("game.csv")
+```
+
+#### Step 2: Clean dataframe for hornets
+In this step, I removed all data from before the 2003-2004 season. This season was the first season of the Charlotte Bobcats. For this analysis, I am considering the New Orleans Hornets/Pelicans a separate franchise.I also remove columns I will not need for this analysis.
+
+```{r}
+game_cha <- na.omit(game[!(game$game_date < "2003-07-01" | (game$team_abbreviation_home != "CHA" & game$team_abbreviation_away != "CHA")),])
+
+game_cha <- game_cha %>%  
+  select(-c(team_id_home, team_name_home, matchup_home, video_available_home, team_id_away, team_name_away, matchup_away, video_available_away))
+```
+
+#### Step 3: Split home and away dataframes
+In this step, I am splitting the datasets into "Hornets Home Games" and "Hornets Away Games"
+
+```{r}
+game_home_cha <- game_cha[!(game_cha$team_abbreviation_home != "CHA"),]
+
+game_away_cha <- game_cha[!(game_cha$team_abbreviation_away != "CHA"),]
+```
+
+#### Step 4: Create the Hornets dataframe
+In this step, I remove all data for Charlotte's opponents from the Home and Away dataframes. I rename the columns to make them consistent, and then I recombine them to form one dataframe.
+
+```{r}
+# Remove other team data
+game_home_cha_only <- game_home_cha %>%  
+  select(-c(team_abbreviation_away, wl_away, fgm_away, fga_away, fg_pct_away, fg3m_away, fg3a_away, fg3_pct_away, ftm_away, fta_away, ft_pct_away, oreb_away, dreb_away, reb_away, ast_away, stl_away, blk_away, tov_away, pf_away, pts_away, plus_minus_away))
+
+# Remove other team data
+game_away_cha_only <- game_away_cha %>%  
+  select(-c(team_abbreviation_home, wl_home, fgm_home, fga_home, fg_pct_home, fg3m_home, fg3a_home, fg3_pct_home, ftm_home, fta_home, ft_pct_home, oreb_home, dreb_home, reb_home, ast_home, stl_home, blk_home, tov_home, pf_home, pts_home, plus_minus_home))
+
+#Rename columns to build CHA stat dataframe
+game_home_cha_only <- game_home_cha_only %>% rename(team_abbreviation = team_abbreviation_home, wl = wl_home, fgm = fgm_home, fga = fga_home, fg_pct = fg_pct_home, fg3m = fg3m_home, fg3a = fg3a_home, fg3_pct = fg3_pct_home, ftm = ftm_home, fta = fta_home, ft_pct = ft_pct_home, oreb = oreb_home, dreb = dreb_home, reb = reb_home, ast = ast_home, stl = stl_home, blk = blk_home, tov = tov_home, pf = pf_home, pts = pts_home, plus_minus = plus_minus_home)
+
+#Rename columns to build CHA stat dataframe
+game_away_cha_only <- game_away_cha_only %>% rename(team_abbreviation = team_abbreviation_away, wl = wl_away, fgm = fgm_away, fga = fga_away, fg_pct = fg_pct_away, fg3m = fg3m_away, fg3a = fg3a_away, fg3_pct = fg3_pct_away, ftm = ftm_away, fta = fta_away, ft_pct = ft_pct_away, oreb = oreb_away, dreb = dreb_away, reb = reb_away, ast = ast_away, stl = stl_away, blk = blk_away, tov = tov_away, pf = pf_away, pts = pts_away, plus_minus = plus_minus_away)
+
+# Stack home and away frames into one frame
+complete_cha_stats <- bind_rows(game_home_cha_only, game_away_cha_only)
+```
+
+#### Step 5: Create Opponents dataframe
+In this step, I do the same transformations from Step 4 to create an Opponents dataframe
+
+```{r}
+# Remove CHA data
+game_home_opp_only <- game_home_cha %>%  
+  select(-c(team_abbreviation_home, wl_home, fgm_home, fga_home, fg_pct_home, fg3m_home, fg3a_home, fg3_pct_home, ftm_home, fta_home, ft_pct_home, oreb_home, dreb_home, reb_home, ast_home, stl_home, blk_home, tov_home, pf_home, pts_home, plus_minus_home))
+
+# Remove CHA data
+game_away_opp_only <- game_away_cha %>%  
+  select(-c(team_abbreviation_away, wl_away, fgm_away, fga_away, fg_pct_away, fg3m_away, fg3a_away, fg3_pct_away, ftm_away, fta_away, ft_pct_away, oreb_away, dreb_away, reb_away, ast_away, stl_away, blk_away, tov_away, pf_away, pts_away, plus_minus_away))
+
+#Rename columns to build opponent stat dataframe
+game_away_opp_only <- game_away_opp_only %>% rename(team_abbreviation = team_abbreviation_home, wl = wl_home, fgm = fgm_home, fga = fga_home, fg_pct = fg_pct_home, fg3m = fg3m_home, fg3a = fg3a_home, fg3_pct = fg3_pct_home, ftm = ftm_home, fta = fta_home, ft_pct = ft_pct_home, oreb = oreb_home, dreb = dreb_home, reb = reb_home, ast = ast_home, stl = stl_home, blk = blk_home, tov = tov_home, pf = pf_home, pts = pts_home, plus_minus = plus_minus_home)
+
+#Rename columns to build opponent stat dataframe
+game_home_opp_only <- game_home_opp_only %>% rename(team_abbreviation = team_abbreviation_away, wl = wl_away, fgm = fgm_away, fga = fga_away, fg_pct = fg_pct_away, fg3m = fg3m_away, fg3a = fg3a_away, fg3_pct = fg3_pct_away, ftm = ftm_away, fta = fta_away, ft_pct = ft_pct_away, oreb = oreb_away, dreb = dreb_away, reb = reb_away, ast = ast_away, stl = stl_away, blk = blk_away, tov = tov_away, pf = pf_away, pts = pts_away, plus_minus = plus_minus_away)
+
+# Stack home and away frames into one frame
+complete_opp_stats <- bind_rows(game_home_opp_only, game_away_opp_only)
+```
+
+#### Step 6: Create Others dataframe
+In this step, I perform the transformations from steps 4 and 5 to create a dataframe for games that did not involve the Hornets.
+
+```{r}
+game_others <- na.omit(game[!(game$game_date < "2003-07-01" | (game$team_abbreviation_home == "CHA" & game$team_abbreviation_away == "CHA")),])
+
+game_others <- game_others %>%  
+  select(-c(team_id_home, team_name_home, matchup_home, video_available_home, team_id_away, team_name_away, matchup_away, video_available_away))
+
+# Create others home dataframe
+game_home_others <- game_others %>%  
+  select(-c(team_abbreviation_away, wl_away, fgm_away, fga_away, fg_pct_away, fg3m_away, fg3a_away, fg3_pct_away, ftm_away, fta_away, ft_pct_away, oreb_away, dreb_away, reb_away, ast_away, stl_away, blk_away, tov_away, pf_away, pts_away, plus_minus_away))
+
+# Remove other team data
+game_away_others <- game_others %>%  
+  select(-c(team_abbreviation_home, wl_home, fgm_home, fga_home, fg_pct_home, fg3m_home, fg3a_home, fg3_pct_home, ftm_home, fta_home, ft_pct_home, oreb_home, dreb_home, reb_home, ast_home, stl_home, blk_home, tov_home, pf_home, pts_home, plus_minus_home))
+
+#Rename columns to build others stat dataframe
+game_home_others <- game_home_others %>% rename(team_abbreviation = team_abbreviation_home, wl = wl_home, fgm = fgm_home, fga = fga_home, fg_pct = fg_pct_home, fg3m = fg3m_home, fg3a = fg3a_home, fg3_pct = fg3_pct_home, ftm = ftm_home, fta = fta_home, ft_pct = ft_pct_home, oreb = oreb_home, dreb = dreb_home, reb = reb_home, ast = ast_home, stl = stl_home, blk = blk_home, tov = tov_home, pf = pf_home, pts = pts_home, plus_minus = plus_minus_home)
+
+#Rename columns to build others stat dataframe
+game_away_others <- game_away_others %>% rename(team_abbreviation = team_abbreviation_away, wl = wl_away, fgm = fgm_away, fga = fga_away, fg_pct = fg_pct_away, fg3m = fg3m_away, fg3a = fg3a_away, fg3_pct = fg3_pct_away, ftm = ftm_away, fta = fta_away, ft_pct = ft_pct_away, oreb = oreb_away, dreb = dreb_away, reb = reb_away, ast = ast_away, stl = stl_away, blk = blk_away, tov = tov_away, pf = pf_away, pts = pts_away, plus_minus = plus_minus_away)
+
+# Stack home and away frames into one frame
+complete_others_stats <- bind_rows(game_home_others, game_away_others)
+```
+
+#### Step 8: Recombine dataframes
+```{r}
+game_stats <- bind_rows(complete_cha_stats, complete_opp_stats, complete_others_stats)
+```
+
+
+#### Step 9: Create Visualizations
+In this step, I create several visualizations to show insights about the data
+
+
+```{r}
+#Points
+ggplot() + 
+  geom_line(data=subset(complete_cha_stats, season_id == 22022), aes(x=game_date, y=pts, group=1), color='green', alpha = 1) +
+  geom_line(data=subset(others_summ, season_id == 22022), aes(x=game_date, y=pts, group=2), color='red', alpha = 0.5) +
+  labs(title = "Hornets vs League Average Points", x = "Date", y = "Points") + 
+  theme(plot.title = element_text(face = "bold", hjust = .5))
+
+#Rebounds
+ggplot() + 
+  geom_line(data=subset(complete_cha_stats, season_id == 22022), aes(x=game_date, y=reb, group=1), color='green', alpha = 1) +
+  geom_line(data=subset(others_summ, season_id == 22022), aes(x=game_date, y=reb, group=2), color='red', alpha = 0.5) +
+  labs(title = "Hornets vs League Average Rebounds", x = "Date", y = "Rebounds") + 
+  theme(plot.title = element_text(face = "bold", hjust = .5))
+
+#Assists
+ggplot() + 
+  geom_line(data=subset(complete_cha_stats, season_id == 22022), aes(x=game_date, y=ast, group=1), color='green', alpha = 1) +
+  geom_line(data=subset(others_summ, season_id == 22022), aes(x=game_date, y=ast, group=2), color='red', alpha = 0.5) +
+  labs(title = "Hornets vs League Average Assists", x = "Date", y = "Assists") + 
+  theme(plot.title = element_text(face = "bold", hjust = .5))
+
+#Blocks
+ggplot() + 
+  geom_line(data=subset(complete_cha_stats, season_id == 22022), aes(x=game_date, y=blk, group=1), color='green', alpha = 1) +
+  geom_line(data=subset(others_summ, season_id == 22022), aes(x=game_date, y=blk, group=2), color='red', alpha = 0.5) +
+  labs(title = "Hornets vs League Average Blocks", x = "Date", y = "Blocks") + 
+  theme(plot.title = element_text(face = "bold", hjust = .5))
+
+#Steals
+ggplot() + 
+  geom_line(data=subset(complete_cha_stats, season_id == 22022), aes(x=game_date, y=stl, group=1), color='green', alpha = 1) +
+  geom_line(data=subset(others_summ, season_id == 22022), aes(x=game_date, y=stl, group=2), color='red', alpha = 0.5) +
+  labs(title = "Hornets vs League Average Steals", x = "Date", y = "Steals") + 
+  theme(plot.title = element_text(face = "bold", hjust = .5))
+
+#Turnovers
+ggplot() + 
+  geom_line(data=subset(complete_cha_stats, season_id == 22022), aes(x=game_date, y=tov, group=1), color='green', alpha = 1) +
+  geom_line(data=subset(others_summ, season_id == 22022), aes(x=game_date, y=tov, group=2), color='red', alpha = 0.5) +
+  labs(title = "Hornets vs League Average Turnovers", x = "Date", y = "Turnovers") + 
+  theme(plot.title = element_text(face = "bold", hjust = .5))
+
+```
+
