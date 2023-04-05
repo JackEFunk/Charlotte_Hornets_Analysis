@@ -1,2 +1,2 @@
-# Charlotte_Hornets_Analysis
- Simple data analysis based on the Charlotte Hornets NBA team
+# Charlotte Hornets Analysis
+ Simple, work in progress, data analysis based on the Charlotte Hornets NBA team
